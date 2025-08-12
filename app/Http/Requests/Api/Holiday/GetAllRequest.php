@@ -28,4 +28,4 @@ class GetHolidayRequest extends FormRequest
       'year' => 'nullable:numeric'
     ];
   }
-}
+} 
