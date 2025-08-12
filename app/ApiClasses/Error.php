@@ -4,7 +4,7 @@ namespace App\ApiClasses;
 
 use Illuminate\Http\JsonResponse;
 
-class Error
+class Error s
 {
   /**
    * Returns json response needed in controllers.
