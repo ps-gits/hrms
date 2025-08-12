@@ -20,8 +20,8 @@ use Exception;
 use Illuminate\Hashing\BcryptHasher;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
-use Tymon\JWTAuth\Exceptions\JWTException;
-use Tymon\JWTAuth\Facades\JWTAuth;
+use PHPOpenSourceSaver\JWTAuth\Exceptions\JWTException;
+use PHPOpenSourceSaver\JWTAuth\Facades\JWTAuth;
 
 class AuthController extends Controller
 {
