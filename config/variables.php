@@ -1,7 +1,7 @@
 <?php
 // Variables
 return [
-  "creatorName" => "CZ App Studio",
+  "creatorName" => "WinHRMS",
   "creatorUrl" => "https://czappstudio.com/",
   "supportNumber" => "+91 88254 29360",
   "supportWhatsappURL" => "https://wa.me/+918825429360",

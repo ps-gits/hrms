@@ -29,10 +29,39 @@ jobs:
         with:
           files: 'composer.json'
 
+      # MODIFIED: Install composer dependencies without scripts to avoid cache path errors
       - name: Run composer install if composer.json exists
         if: steps.check_files.outputs.files_exists == 'true'
-        run: composer validate --no-check-publish && composer install --prefer-dist --no-progress
+        run: |
+          composer validate --no-check-publish
+          composer install --prefer-dist --no-progress --no-scripts --no-dev --optimize-autoloader
 
+      # NEW: Create Laravel storage directories
+      - name: Create Laravel storage directories
+        run: |
+          mkdir -p storage/framework/views
+          mkdir -p storage/framework/cache/data
+          mkdir -p storage/framework/sessions
+          mkdir -p storage/framework/testing
+          mkdir -p storage/logs
+          mkdir -p bootstrap/cache
+
+      # NEW: Run Laravel commands manually after directories are created
+      - name: Run Laravel setup commands
+        run: |
+          # Copy .env.example to .env if it doesn't exist
+          cp -n .env.example .env || true
+          
+          # Set basic environment for artisan commands
+          echo "APP_KEY=" >> .env
+          echo "CACHE_DRIVER=array" >> .env
+          echo "SESSION_DRIVER=array" >> .env
+          
+          # Run package discovery now that storage exists
+          php artisan package:discover --ansi
+          
+          # Cache configuration for production (only if no errors)
+          php artisan config:cache --no-interaction || echo "Config cache failed, continuing..."
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
@@ -67,4 +96,3 @@ jobs:
           app-name: 'hrmswin'
           slot-name: 'Production'
           package: .
-          

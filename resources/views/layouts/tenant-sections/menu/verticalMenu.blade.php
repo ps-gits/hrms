@@ -18,7 +18,8 @@
           @endif
         </span>
         <span class="app-brand-text demo menu-text fw-bold ms-2">
-          {{$settings->company_name ?? config('variables.templateName')}}
+          <!-- {{$settings->company_name ?? config('variables.templateName')}} -->
+          WIN HR
         </span>
       </a>
 
