@@ -89,10 +89,30 @@ jobs:
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_EE016242DCD04C4D8634B99CF16F9448 }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_44E9AC2DB33D45669ED0A4F0BD79DEFB }}
 
-      - name: 'Deploy to Azure Web App'
-        uses: azure/webapps-deploy@v3
-        id: deploy-to-webapp
-        with:
-          app-name: 'hrmswin'
-          slot-name: 'Production'
-          package: .
+      # NEW: Create deployment package
+      - name: Create deployment package
+        run: |
+          zip -r deployment.zip . -x "*.git*" "node_modules/*" "tests/*" ".github/*"
+
+      # NEW: Configure App Service settings before deployment
+      - name: Configure App Service
+        run: |
+          # Set PHP version (replace YOUR_RESOURCE_GROUP with actual name)
+          az webapp config set --name hrmswin --resource-group hrapp --php-version "8.3"
+          
+          # Configure app settings for Laravel
+          az webapp config appsettings set --name hrmswin --resource-group hrapp --settings \
+            APP_ENV=production \
+            APP_DEBUG=false \
+            CACHE_DRIVER=file \
+            SESSION_DRIVER=file \
+            SCM_DO_BUILD_DURING_DEPLOYMENT=false
+
+      # Deploy using Azure CLI instead of webapps-deploy action
+      - name: Deploy with Azure CLI
+        run: |
+          az webapp deployment source config-zip \
+            --resource-group hrapp \
+            --name hrmswin \
+            --src deployment.zip \
+            --timeout 600
