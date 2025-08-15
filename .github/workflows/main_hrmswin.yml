@@ -93,7 +93,7 @@ jobs:
       - name: Configure Kudu and App Service
         run: |
           # Get resource group name dynamically
-          RESOURCE_GROUP=$(az webapp show --name hrmswin --query resourceGroup -o tsv)
+          RESOURCE_GROUP=hrapp
           echo "Resource Group: $RESOURCE_GROUP"
           
           # Configure app settings to help with Kudu issues
@@ -111,7 +111,7 @@ jobs:
       # Restart App Service to reset Kudu
       - name: Restart App Service
         run: |
-          RESOURCE_GROUP=$(az webapp show --name hrmswin --query resourceGroup -o tsv)
+          RESOURCE_GROUP=hrapp
           echo "Restarting app service to reset Kudu..."
           az webapp restart --name hrmswin --resource-group $RESOURCE_GROUP
           echo "Waiting for restart to complete..."
@@ -133,8 +133,8 @@ jobs:
         run: |
           echo "Trying FTP deployment as fallback..."
           # Get FTP credentials
-          PUBLISH_PROFILE=$(az webapp deployment list-publishing-profiles --name hrmswin --resource-group $(az webapp show --name hrmswin --query resourceGroup -o tsv) --xml)
-          
+          PUBLISH_PROFILE=$(az webapp deployment list-publishing-profiles --name hrmswin --resource-group hrapp --xml)
+          echo "PUBLISH_PROFILE : " $PUBLISH_PROFILE
           # Create a simple test file to verify FTP works
           echo "<?php echo 'Deployment test: ' . date('Y-m-d H:i:s'); ?>" > test-deploy.php
           
