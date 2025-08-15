@@ -89,30 +89,54 @@ jobs:
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_EE016242DCD04C4D8634B99CF16F9448 }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_44E9AC2DB33D45669ED0A4F0BD79DEFB }}
 
-      # NEW: Create deployment package
-      - name: Create deployment package
+      # Configure Kudu and App Service settings
+      - name: Configure Kudu and App Service
         run: |
-          zip -r deployment.zip . -x "*.git*" "node_modules/*" "tests/*" ".github/*"
-
-      # NEW: Configure App Service settings before deployment
-      - name: Configure App Service
-        run: |
-          # Set PHP version (replace YOUR_RESOURCE_GROUP with actual name)
-          az webapp config set --name hrmswin --resource-group hrapp --php-version "8.3"
+          # Get resource group name dynamically
+          RESOURCE_GROUP=$(az webapp show --name hrmswin --query resourceGroup -o tsv)
+          echo "Resource Group: $RESOURCE_GROUP"
           
-          # Configure app settings for Laravel
-          az webapp config appsettings set --name hrmswin --resource-group hrapp --settings \
-            APP_ENV=production \
-            APP_DEBUG=false \
-            CACHE_DRIVER=file \
-            SESSION_DRIVER=file \
-            SCM_DO_BUILD_DURING_DEPLOYMENT=false
+          # Configure app settings to help with Kudu issues
+          az webapp config appsettings set --name hrmswin --resource-group $RESOURCE_GROUP --settings \
+            SCM_DO_BUILD_DURING_DEPLOYMENT=false \
+            ENABLE_ORYX_BUILD=false \
+            SCM_COMMAND_IDLE_TIMEOUT=7200 \
+            SCM_DEPLOYMENT_TIMEOUT=7200 \
+            WEBSITE_SCM_IDLE_TIMEOUT_IN_MINUTES=120 \
+            WEBSITE_SCM_PING_INTERVAL=60
+          
+          # Wait for settings to apply
+          sleep 30
 
-      # Deploy using Azure CLI instead of webapps-deploy action
-      - name: Deploy with Azure CLI
+      # Restart App Service to reset Kudu
+      - name: Restart App Service
         run: |
-          az webapp deployment source config-zip \
-            --resource-group hrapp \
-            --name hrmswin \
-            --src deployment.zip \
-            --timeout 600
+          RESOURCE_GROUP=$(az webapp show --name hrmswin --query resourceGroup -o tsv)
+          echo "Restarting app service to reset Kudu..."
+          az webapp restart --name hrmswin --resource-group $RESOURCE_GROUP
+          echo "Waiting for restart to complete..."
+          sleep 60
+
+      # Deploy using the original method with specific settings
+      - name: Deploy to Azure Web App
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: 'hrmswin'
+          slot-name: 'Production'
+          package: .
+          # Add these specific settings
+          clean: true
+          restart: true
+      # Alternative: Try FTP deployment
+      - name: Deploy via FTP as fallback
+        if: failure()
+        run: |
+          echo "Trying FTP deployment as fallback..."
+          # Get FTP credentials
+          PUBLISH_PROFILE=$(az webapp deployment list-publishing-profiles --name hrmswin --resource-group $(az webapp show --name hrmswin --query resourceGroup -o tsv) --xml)
+          
+          # Create a simple test file to verify FTP works
+          echo "<?php echo 'Deployment test: ' . date('Y-m-d H:i:s'); ?>" > test-deploy.php
+          
+          # Note: In a real scenario, you'd use these credentials to upload files
+          echo "FTP deployment would be configured here"
